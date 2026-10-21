@@ -1,0 +1,22 @@
+schema_version: 1
+id: agents-core
+name: Agents Core
+version: 0.1.2
+description: Juicyfruit's canonical sub-agent catalogue, answering in Juicyfruit's voice.
+license: MIT
+targets:
+  - codex
+  - claude-code
+  - cursor
+  - antigravity
+  - devin
+  - generic
+  - gemini-cli
+  - via
+  - dsh
+contents:
+  agents:
+    - agents
+  rules: []
+dependencies: []
+conflicts: []

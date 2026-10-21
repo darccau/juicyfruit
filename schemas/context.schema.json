@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://juicyfruit.faustobdls.dev/schemas/context.schema.json",
+  "title": "Juicyfruit context package",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "task", "budget", "sources", "missing"],
+  "properties": {
+    "schema": { "const": "juicyfruit.context/v1" },
+    "task": { "type": "string", "pattern": "^JCF-[0-9A-HJKMNP-TV-Z]{20}$" },
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["target_tokens", "hard_limit_tokens", "estimated_tokens", "estimator"],
+      "properties": {
+        "target_tokens": { "type": "integer", "minimum": 1 },
+        "hard_limit_tokens": { "type": "integer", "minimum": 1 },
+        "estimated_tokens": { "type": "integer", "minimum": 0 },
+        "estimator": { "const": "ceil(chars / 4)" }
+      }
+    },
+    "sources": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rules", "skills", "personas", "templates", "memory", "files", "decisions"],
+      "properties": {
+        "rules": { "$ref": "#/$defs/stringList" },
+        "skills": { "$ref": "#/$defs/stringList" },
+        "personas": { "$ref": "#/$defs/stringList" },
+        "templates": { "$ref": "#/$defs/stringList" },
+        "memory": { "$ref": "#/$defs/stringList" },
+        "files": { "$ref": "#/$defs/stringList" },
+        "decisions": { "$ref": "#/$defs/stringList" }
+      }
+    },
+    "missing": { "$ref": "#/$defs/stringList" }
+  },
+  "$defs": {
+    "stringList": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1, "maxLength": 512 }
+    }
+  }
+}

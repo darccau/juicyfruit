@@ -1,0 +1,8 @@
+{
+  "schema": "juicyfruit.task-event/v1",
+  "id": "EVT-01M1HK2J2HHX362617QK",
+  "task": "JCF-01M1HJQPXHKQFBXPYYJP",
+  "type": "done",
+  "created_at": "2026-09-02T17:36:09.297591Z",
+  "data": {}
+}

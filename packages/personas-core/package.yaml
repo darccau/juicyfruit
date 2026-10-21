@@ -1,0 +1,22 @@
+schema_version: 1
+id: personas-core
+name: Personas Core
+version: 0.1.1
+description: Seed personas for Juicyfruit's voice and the user's durable preferences.
+license: MIT
+targets:
+  - codex
+  - claude-code
+  - cursor
+  - antigravity
+  - devin
+  - generic
+  - gemini-cli
+  - via
+  - dsh
+contents:
+  personas:
+    - personas/juicyfruit.md
+    - personas/user.md
+dependencies: []
+conflicts: []

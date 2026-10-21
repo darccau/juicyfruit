@@ -1,0 +1,10 @@
+{
+  "schema": "juicyfruit.task-event/v1",
+  "id": "EVT-01M1HJ0Z61XJTJ0M8557",
+  "task": "JCF-01M1HJ0Z61HR8WPG3QQ9",
+  "type": "created",
+  "created_at": "2026-09-02T17:17:48.609653Z",
+  "data": {
+    "title": "Respect installed targets and task flow priorities"
+  }
+}

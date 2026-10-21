@@ -1,0 +1,17 @@
+.env
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+.omc/
+.claude/
+.DS_Store
+
+# Juicyfruit — durable work state (config, tasks/, runs/, context/, task-events/,
+# memory/) is versioned; only machine/process-local state is ignored.
+.juicyfruit/runtime/

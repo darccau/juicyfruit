@@ -1,0 +1,9 @@
+schema: juicyfruit.adapter/v1
+id: generic
+user_directory: .juicyfruit
+project_directory: .juicyfruit
+configuration_markers:
+  - skills
+  - rules
+  - agents
+  - templates

@@ -1,0 +1,24 @@
+schema_version: 1
+id: memory-core
+name: Memory Core
+version: 0.1.1
+description: Skills and rules that teach an agent to use the Juicyfruit memory subsystem.
+license: MIT
+targets:
+  - codex
+  - claude-code
+  - cursor
+  - antigravity
+  - devin
+  - generic
+  - gemini-cli
+  - via
+  - dsh
+contents:
+  skills:
+    - skills/juicyfruit-memory
+  rules:
+    - rules/memory-usage.md
+    - rules/memory-hygiene.md
+dependencies: []
+conflicts: []

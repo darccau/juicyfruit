@@ -1,0 +1,9 @@
+schema_version: 1
+id: juicyfruit
+name: Juicyfruit
+description: Canonical local source for the Juicyfruit ecosystem.
+kind: local
+path: .
+read_only: true
+packages_path: packages
+profiles_path: profiles

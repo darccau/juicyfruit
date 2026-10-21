@@ -1,0 +1,229 @@
+name: release
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: Prepare release tag
+    runs-on: ubuntu-latest
+    outputs:
+      release_tag: ${{ steps.release.outputs.release_tag }}
+      should_release: ${{ steps.release.outputs.should_release }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Validate release candidate
+        id: release
+        shell: bash
+        run: |
+          package_version="$(sed -n 's/^const Version = "\(.*\)"$/\1/p' internal/version/version.go)"
+          if [[ ! "$package_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Package version must use the X.Y.Z format." >&2
+            exit 1
+          fi
+
+          release_tag="v${package_version}"
+          echo "release_tag=$release_tag" >> "$GITHUB_OUTPUT"
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            if [[ "$GITHUB_REF_NAME" != "$release_tag" ]]; then
+              echo "Tag $GITHUB_REF_NAME does not match package version $package_version." >&2
+              exit 1
+            fi
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if git rev-parse --quiet --verify "refs/tags/$release_tag" >/dev/null; then
+            echo "$release_tag already exists; no release is needed."
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "should_release=true" >> "$GITHUB_OUTPUT"
+
+  verify:
+    name: Verify release
+    needs: prepare
+    if: needs.prepare.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Check formatting
+        run: test -z "$(gofmt -l cmd internal)"
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test ./...
+
+  build:
+    name: Build ${{ matrix.asset }}
+    needs: [prepare, verify]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            asset: juicyfruit-linux-x64
+            executable: juicyfruit
+            goos: linux
+            goarch: amd64
+            archive: tar
+            extension: tar.gz
+          - runner: ubuntu-latest
+            asset: juicyfruit-linux-arm64
+            executable: juicyfruit
+            goos: linux
+            goarch: arm64
+            archive: tar
+            extension: tar.gz
+          - runner: macos-15-intel
+            asset: juicyfruit-macos-x64
+            executable: juicyfruit
+            goos: darwin
+            goarch: amd64
+            archive: tar
+            extension: tar.gz
+          - runner: macos-14
+            asset: juicyfruit-macos-arm64
+            executable: juicyfruit
+            goos: darwin
+            goarch: arm64
+            archive: tar
+            extension: tar.gz
+          - runner: windows-latest
+            asset: juicyfruit-windows-x64
+            executable: juicyfruit.exe
+            goos: windows
+            goarch: amd64
+            archive: zip
+            extension: zip
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Create build directory
+        shell: bash
+        run: mkdir -p build
+
+      - name: Compile native executable
+        shell: bash
+        env:
+          CGO_ENABLED: "0"
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: >-
+          go build
+          -trimpath
+          -ldflags "-s -w"
+          -o build/${{ matrix.executable }}
+          ./cmd/juicyfruit
+
+      - name: Package Unix executable
+        if: matrix.archive == 'tar'
+        shell: bash
+        run: |
+          chmod +x build/juicyfruit
+          tar -C build -czf ${{ matrix.asset }}.tar.gz juicyfruit
+
+      - name: Package Windows executable
+        if: matrix.archive == 'zip'
+        shell: pwsh
+        run: Compress-Archive -Path build/juicyfruit.exe -DestinationPath ${{ matrix.asset }}.zip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.asset }}
+          path: ${{ matrix.asset }}.${{ matrix.extension }}
+          if-no-files-found: error
+
+  tag:
+    name: Create release tag
+    needs: [prepare, build]
+    if: needs.prepare.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Create annotated tag after successful builds
+        if: github.ref_type != 'tag'
+        shell: bash
+        run: |
+          release_tag="${{ needs.prepare.outputs.release_tag }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag --annotate "$release_tag" --message "$release_tag"
+          git push origin "$release_tag"
+
+  publish:
+    name: Publish GitHub release
+    needs: [prepare, build, tag]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Download release assets
+        uses: actions/download-artifact@v8
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Generate changelog and checksums
+        shell: bash
+        run: |
+          release_tag="${{ needs.prepare.outputs.release_tag }}"
+          previous_tag="$(git describe --tags --abbrev=0 "${release_tag}^" 2>/dev/null || true)"
+          GITHUB_REF_NAME="$release_tag" scripts/generate-release-notes.sh "$previous_tag" RELEASE_NOTES.md
+          cd dist
+          sha256sum juicyfruit-* > SHA256SUMS
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh release create "${{ needs.prepare.outputs.release_tag }}"
+          dist/*
+          --verify-tag
+          --latest
+          --title "Juicyfruit ${{ needs.prepare.outputs.release_tag }}"
+          --notes-file RELEASE_NOTES.md

@@ -1,0 +1,126 @@
+name: juicyfruit_cli
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/juicyfruit_cli.yaml"
+      - "juicyfruit-source.yaml"
+      - "cmd/**"
+      - "internal/**"
+      - "go.mod"
+      - "go.sum"
+      - "packages/**"
+      - "rules/**"
+      - "schemas/**"
+      - "scripts/install.ps1"
+      - "skills/**"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/juicyfruit_cli.yaml"
+      - "juicyfruit-source.yaml"
+      - "cmd/**"
+      - "internal/**"
+      - "go.mod"
+      - "go.sum"
+      - "packages/**"
+      - "rules/**"
+      - "schemas/**"
+      - "scripts/install.ps1"
+      - "skills/**"
+
+jobs:
+  verify:
+    name: verify (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Validate Windows installer syntax
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          $installer = Join-Path $env:GITHUB_WORKSPACE "scripts/install.ps1"
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            $installer,
+            [ref]$tokens,
+            [ref]$errors
+          ) | Out-Null
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Error $_ }
+            exit 1
+          }
+
+      - name: Check formatting
+        if: runner.os != 'Windows'
+        shell: bash
+        run: test -z "$(gofmt -l cmd internal)"
+
+      - name: Check formatting (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $changed = gofmt -l cmd internal
+          if ($changed) {
+            $changed | ForEach-Object { Write-Error "gofmt needed: $_" }
+            exit 1
+          }
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test ./...
+
+      - name: Validate canonical catalog
+        shell: bash
+        env:
+          JUICYFRUIT_CONFIG_HOME: ${{ runner.temp }}/juicyfruit-config
+          JUICYFRUIT_USER_ROOT: ${{ runner.temp }}/juicyfruit-user
+          JUICYFRUIT_PROJECT_ROOT: ${{ github.workspace }}
+        run: |
+          go run ./cmd/juicyfruit source add canonical --local .
+          go run ./cmd/juicyfruit source test canonical
+          go run ./cmd/juicyfruit package list
+          go run ./cmd/juicyfruit package show android-core
+          go run ./cmd/juicyfruit package install android-core --target generic --scope user
+          go run ./cmd/juicyfruit package status --target generic --scope user
+          go run ./cmd/juicyfruit package diff --target generic --scope user
+          go run ./cmd/juicyfruit package uninstall android-core --target generic --scope user
+
+      - name: Validate memory subsystem
+        shell: bash
+        env:
+          JUICYFRUIT_CONFIG_HOME: ${{ runner.temp }}/juicyfruit-memory-config
+          JUICYFRUIT_USER_ROOT: ${{ runner.temp }}/juicyfruit-memory-user
+          JUICYFRUIT_PROJECT_ROOT: ${{ github.workspace }}
+          JUICYFRUIT_MEMORY_HOME: ${{ runner.temp }}/juicyfruit-memory-store
+        run: |
+          go run ./cmd/juicyfruit source add canonical --local .
+          go run ./cmd/juicyfruit memory setup --all --source canonical --scope user
+          go run ./cmd/juicyfruit memory add --scope user --kind activity "ci smoke"
+          go run ./cmd/juicyfruit memory add --scope user --kind note --title "ci note" "body"
+          go run ./cmd/juicyfruit memory search ci --scope user
+          go run ./cmd/juicyfruit memory list --since 7d --scope user
+          go run ./cmd/juicyfruit memory digest --since 7d --max-chars 400 --scope user
+
+      - name: Compile native executable
+        run: go build -trimpath -o juicyfruit ./cmd/juicyfruit

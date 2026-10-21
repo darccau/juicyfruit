@@ -1,0 +1,39 @@
+schema_version: 1
+id: skills-core
+name: Skills Core
+version: 0.3.3
+description: Juicyfruit's workflow skills — orchestration methods, in Juicyfruit's voice.
+license: MIT
+targets:
+  - codex
+  - claude-code
+  - cursor
+  - antigravity
+  - devin
+  - generic
+  - gemini-cli
+  - via
+  - dsh
+contents:
+  skills:
+    - skills/autopilot
+    - skills/ralph
+    - skills/ralplan
+    - skills/ultrawork
+    - skills/ultraqa
+    - skills/team
+    - skills/plan
+    - skills/deep-interview
+    - skills/trace
+    - skills/deslop
+    - skills/map-project
+    - skills/web-research
+    - skills/compose-from-template
+    - skills/capability-authoring
+    - skills/agent-instruction-review
+    - skills/prompt-refiner
+    - skills/visual-verdict
+    - skills/grill-me
+    - skills/juicyfruit-worker
+dependencies: []
+conflicts: []

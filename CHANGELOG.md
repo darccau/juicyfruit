@@ -1,0 +1,325 @@
+# Changelog
+
+All notable changes to Juicyfruit are documented in this file. The format follows
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
+[Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Changed
+
+- Renamed the application from Alfredo to Juicyfruit, including the CLI binary,
+  Go module, environment variables, `.juicyfruit` state directories, schemas,
+  source and package IDs, repository URLs, and task IDs (`ALF-` → `JCF-`).
+- Moved the project into the `darccau/juicyfruit` repository.
+- Rewrote the Juicyfruit CLI in Go with parity for setup, sources, packages,
+  memory, tasks, sessions, runs, context, templates, hooks, update, and upgrade.
+- CI and release workflows now build, test, and cross-compile the Go CLI.
+- `juicyfruit hooks install` runs `gofmt` and `go vet` in the pre-commit hook.
+
+### Removed
+
+- Removed the Dart CLI implementation and `scripts/dart-sandbox.sh`.
+
+## [1.2.2] - 2026-09-24
+
+### Fixed
+
+- Fixed the DSH plugin failing to load with `invalid exact Fetch route "/api/juicyfruit/*"`
+  by registering one exact route per API resource.
+- Fixed the DSH plugin browser bundle: `lib/client.js` is now built by
+  `packages/juicyfruit-plugin/build.mjs` in the ModuleLoader factory format DSH
+  expects, and the plugin stylesheet is injected.
+- Fixed the DSH Kanban showing no tasks when `dsh` runs outside the project by
+  resolving the Juicyfruit workspace from the DSH workspace registry.
+- Fixed package install, uninstall, and update actions in the DSH plugin
+  returning an error for plain-text CLI output.
+- `juicyfruit task claim` now reports a clear error, instead of an unhandled
+  exception, when the worktree directory cannot be created, and its usage shows
+  the required `<task>` argument.
+
+## [1.2.1] - 2026-09-24
+
+### Fixed
+
+- Fixed `Unsupported installation target: dsh` error by including the `dsh` target adapter mapping in `TargetAdapters.forId`.
+- Fixed CI release workflow Dart SDK version requirement (`3.12.0` → `3.13.4`).
+
+## [1.2.0] - 2026-09-23
+
+### Added
+
+- DeepSeek Harness (DSH) plugin bundle with the official `conversation.view`
+  Juicyfruit tab, authenticated CLI-backed host API, Kanban task surface,
+  worker/session views, package catalog foundations, and debounced runtime
+  refresh.
+- `juicyfruit setup --dsh` and DSH adapter/package support (`adapters/dsh.yaml`), including automatic installation of the Juicyfruit plugin into the DSH web interface via `dsh plugin --profile <profile> add`.
+- `--profile` option for `juicyfruit setup --dsh` (defaulting to `web`).
+- Optional task tracks with `juicyfruit task ready --track`, DSH session IDs, the
+  `juicyfruit-worker` skill, and main-repository resolution from linked worktrees.
+- Colorized terminal task board via `juicyfruit task board` with `--json` and
+  `--watch` options.
+- Task runtime metrics and performance analytics with `juicyfruit task report`.
+- Real BM25 hybrid ranking (combining BM25 term weighting with vector
+  similarity) in `juicyfruit memory search`.
+- Incremental journal compaction via `juicyfruit memory compact`.
+- Declarative target adapters framework (`adapters/`) for extensible agent
+  target definitions.
+- Third-party package discovery and source synchronization with `juicyfruit source sync`
+  and `juicyfruit source search`.
+- Native Git hooks integration via `juicyfruit hooks install`.
+- Dart sandbox execution resilience via `scripts/dart-sandbox.sh`.
+- DSH plugin package metadata declaring minimum supported DSH release
+  (0.1.5-rc.3) and browser client bundle.
+
+### Changed
+
+- `juicyfruit init` now defaults to initializing the current working directory
+  when invoked without a subcommand or path argument.
+- Task Runtime documents the one-worktree-per-task execution contract and keeps
+  `.juicyfruit/` canonical state in the main repository.
+- Robust permission verification and smoke checks in `scripts/install.sh` and
+  `scripts/install.ps1`.
+- Bumped CLI dependencies to `very_good_analysis 11.0.0`, `archive 4.3.0`,
+  `mason_logger 0.3.6`, `build_runner 2.16.1`, and `test 1.32.0`.
+
+### Fixed
+
+- CLI formatting, linter warnings, and strict static analysis rules across task
+  runtime stores and tests.
+
+## [1.1.0] - 2026-09-03
+
+### Added
+
+- `capability-authoring`, `agent-instruction-review`, `prompt-refiner`,
+  `visual-verdict`, and `grill-me` workflow skills in `skills-core`.
+- `agent-instruction-reviewer` in `agents-core` for independent, read-only
+  review of agent and skill instructions.
+
+### Changed
+
+- `plan` and `planner` now produce grounded technical plans with explicit
+  scope, path impact, dependencies, acceptance criteria, verification, and
+  task-runtime handoff. Concrete high-impact decisions can be pressure-tested
+  through `grill-me` before planning.
+- Bumped `skills-core` to `0.3.2` and `agents-core` to `0.1.2`.
+
+## [1.0.0] - 2026-09-02
+
+### Added
+
+- `ai-review-attribution` rule in `rules-core`: AI-generated PR review comments
+  must end with the creating agent, the human reviewer, and an explicit
+  `Generated by AI.` disclosure.
+- Adapter targets for Devin, Gemini CLI, and Via across setup, package install,
+  update, package schemas, memory capture configuration, template discovery,
+  and the official packages.
+
+### Changed
+
+- `juicyfruit setup --all` now installs only targets declared by the discovered
+  official packages and already configured in the selected local scope instead
+  of expanding to every built-in adapter.
+- `juicyfruit memory setup --all` no longer implies the Claude Code target or
+  writes a Claude Code hook unless the target is configured or
+  `--target claude-code` is selected.
+- `juicyfruit task ready` now orders ready work by priority before creation time,
+  so master flows pick the most important unblocked task first.
+- Task Runtime and workflow docs now spell out the master development flow:
+  plan, review, approval, To Do (`BACKLOG`) task creation, parallel execution of
+  independent atomic tasks, verification, semantic commits when authorized, and
+  continued pickup until the run is complete.
+- Planning, autopilot, and team workflows now stop for clarifying questions
+  before planning when ambiguity would change scope, acceptance criteria,
+  architecture, task boundaries, sequencing, target environment, or safe
+  parallelization.
+- Master, autopilot, team, and planner workflows now include closure checks for
+  README freshness and memory relevance before reporting completion.
+- Template creation now requires the kind, purpose, and output format, writes
+  the blank scaffold under the repository `templates/` tree, and reports the
+  generated path. Template format targets are project-defined identifiers;
+  built-in-looking values are suggestions, not a closed enum.
+- English, Brazilian Portuguese, and Spanish READMEs now share the same
+  structure and content order: project overview, core concepts, installation,
+  setup, commands, repository layout, and architecture links.
+- Bumped official package manifests for the expanded target support:
+  `android-core`, `agents-core`, `memory-core`, and `personas-core` to `0.1.1`;
+  `skills-core` to `0.3.1`; and `rules-core` to `0.3.2`.
+
+### Removed
+
+- Removed the legacy local HUD app and its dedicated CI workflow. A future HUD
+  can be introduced through a new implementation path.
+
+## [0.0.7] - 2026-09-01
+
+### Added
+
+- `personas-core` package with seed `personas/juicyfruit.md` and
+  `personas/user.md` files for Juicyfruit's voice and durable user communication
+  preferences.
+- `personas` package content kind, installed-state seed mode, and context
+  package `personas` sources so persona files are created when absent and
+  preserved across updates.
+- Templates subsystem: a new canonical content type `templates/` for output
+  contracts — the voice, structure, length, format, and constraints of an
+  authored artifact (email, slide deck, memo). Adds `schemas/template.schema.json`,
+  a `templates` key to the package `contents` contract, and an `juicyfruit template`
+  command group (`list`, `show`, `new`, `validate`, `match`). `juicyfruit context
+  build` folds a resolved template into `sources.templates` when a task sets
+  `context.template`. Juicyfruit ships no templates; teams author and distribute
+  their own. See `docs/architecture/templates.md`.
+- `use-templates` rule in `rules-core`: resolve a template with
+  `juicyfruit template match <kind>` before producing an authored artifact and
+  follow its contract; never invent one. Loaded conditionally.
+- `compose-from-template` workflow skill in `skills-core`: shape existing source
+  material — an outline, a roteiro, notes — into the finished artifact under a
+  resolved template, then verify the result against the contract in a separate
+  pass. Renderer-agnostic: the template names the target, the agent uses
+  whatever tool the session has.
+- `web-research` workflow skill in `skills-core`: fetch external content through
+  whatever tool tier the session has, record provenance (URL, date, content
+  hash), and fold the findings into memory or a context topic. Names scrapers
+  like Scrapling, ScrapeGraphAI, and Agent-Reach only as examples of each tier,
+  never as dependencies.
+- `external-content-provenance` rule in `rules-core`: content fetched from
+  outside the machine is a dated, hashed snapshot, not live truth; re-fetch
+  deliberately. Loaded conditionally when `web-research` runs.
+- Source Model docs now show consuming a third-party skill (for example the
+  `nidhinjs/prompt-master` Claude skill) as a pinned Git source rather than
+  vendoring it, plus a self-contained-skill authoring principle in
+  `docs/architecture/skills.md`.
+
+## [0.0.6] - 2026-09-01
+
+### Changed
+
+- Bump `cli_completion` from 0.5.1 to 0.6.0 and `yaml` from 3.1.3 to 3.1.4 in
+  the CLI.
+- Bump CI and release GitHub Actions: `actions/checkout` 4 to 7,
+  `actions/setup-python` 5 to 7, `actions/upload-artifact` 4 to 7,
+  `actions/download-artifact` 4 to 8, and `dart-lang/setup-dart` 1.8.0 to 1.8.1.
+
+## [0.0.5] - 2026-08-31
+
+### Added
+
+- Task Runtime foundation: durable tasks, dependency-aware ready work, atomic
+  claims, sessions, runs, compact checkpoints, resumable handoff packets,
+  context packages, runtime schemas, and CLI commands under `juicyfruit task`,
+  `juicyfruit session`, `juicyfruit run`, and `juicyfruit context`.
+- Task events now have an explicit `juicyfruit.task-event/v1` schema and the
+  runtime can recover stale local lock files after a bounded timeout.
+- `agents` content kind for packages, alongside `skills` and `rules`. Packages
+  can bundle sub-agent definitions that install into each target's agent
+  directory (`~/.claude/agents/`, `~/.codex/agents/`, and so on).
+- Canonical `agents/` root and the `agents-core` package: a catalogue of 19
+  sub-agent personas (executor, planner, architect, code-reviewer, debugger,
+  and more) that answer in Juicyfruit's voice.
+- `juicyfruit init source <path>` scaffolds a new Juicyfruit source repository —
+  manifest, content roots (`skills/`, `rules/`, `agents/`, `profiles/`), a
+  sample package, README, and CHANGELOG — with `--id`, `--name`, and `--force`.
+- `rules-core` package: nine always-on working rules in Juicyfruit's voice
+  (smallest change, verify before claiming, match the house style, atomic
+  commits, authorization boundaries, faithful reporting, ask only when blocked,
+  secrets and exfiltration, separate authoring from review).
+- `skills-core` package: eleven workflow skills in Juicyfruit's voice (`autopilot`,
+  `ralph`, `ralplan`, `ultrawork`, `ultraqa`, `team`, `plan`, `deep-interview`,
+  `trace`, `deslop`, `map-project`) that orchestrate the agent catalogue through
+  phased, verified processes.
+- `map-project` skill: a first-contact repository survey that produces a
+  structured `docs/` map (overview, one file per subsystem, directory index) so
+  later sessions read the map instead of re-exploring. `juicyfruit init source`
+  scaffolds it into new source repositories and points `AGENTS.md` at it.
+
+### Changed
+
+- `juicyfruit memory list` now includes durable notes by default as well as recent
+  journal activity; use `--kind activity` or `--kind note` to filter.
+- Task Runtime CLI commands now discover the repository runtime root from nested
+  directories instead of writing accidental subdirectory `.juicyfruit/` stores.
+- `juicyfruit setup` and `juicyfruit package install` no longer abort when a managed
+  file was edited locally. Each modified file is resolved on its own: the
+  command asks before overwriting, keeps the file and warns if declined, and a
+  new `--force` flag overwrites every modified file without asking. Kept files
+  stay tracked and still report as modified.
+
+## [0.0.4] - 2026-08-31
+
+### Added
+
+- Discovery `tags` in the frontmatter of the five `android-core` skills so agents
+  can filter and route them by domain, discipline, topic, and tool.
+
+### Changed
+
+- `juicyfruit memory setup` recognizes several known embedding models
+  (`nomic-embed-text`, `mxbai-embed-large`, `bge-m3`, `snowflake-arctic-embed2`,
+  `snowflake-arctic-embed`, `embeddinggemma`, `all-minilm`,
+  `paraphrase-multilingual`) and reuses whichever one is already installed
+  instead of only ever downloading `nomic-embed-text`.
+
+### Fixed
+
+- `juicyfruit memory setup --all` now recognizes an already-installed embedding model
+  that Ollama reports with an explicit `:latest` tag, instead of falling back to
+  keyword search and leaving embeddings disabled.
+
+## [0.0.3] - 2026-08-31
+
+### Added
+
+- `juicyfruit upgrade` self-updates the CLI from the latest checksum-verified release,
+  with `--check` and `--force`.
+- `juicyfruit update` re-resolves installed packages across every target and scope,
+  advances Git sources to newer revisions, and reinstalls changed content, with
+  `--target`, `--scope`, `--package`, `--dry-run`, and `--no-refresh-sources`.
+- `juicyfruit memory` subsystem with an append-only, offline-first local store in
+  `.juicyfruit/memory/`, separate user and repository scopes, keyword recall with
+  optional local Ollama embedding ranking, and the `memory-core` package.
+  Includes `memory setup`, `add`, `search`, `list`, `digest`, `index`, and
+  `capture` subcommands.
+
+### Fixed
+
+- Materialize Git source snapshots without exceeding the Windows path limit by
+  using a short staging directory name and enabling Git `core.longpaths`.
+
+## [0.0.2] - 2026-08-31
+
+### Added
+
+- Cross-platform GitHub release pipeline with native macOS, Linux, and Windows artifacts.
+- Checksum-verified installers for Unix shells and Windows PowerShell.
+- Conventional Commit-based release notes for GitHub releases.
+- `juicyfruit setup` bootstrap command with `--all` and per-agent installation flags.
+- Automatic release-tag creation after successful merge validation and builds.
+
+### Fixed
+
+- Return a usage error instead of an unhandled exception when `--target` is missing.
+- Handle empty or unset Windows user and process PATH values during installation.
+
+## [0.0.1] - 2026-08-31
+
+### Added
+
+- Initial Dart CLI and native `juicyfruit` executable.
+- Validated source catalogs, immutable snapshots, and archive integrity checks.
+- Deterministic package resolution, transactional installation, status, diff, and uninstall.
+- Portable Android engineering skills and the `android-core` package.
+- FastAPI HUD monorepo application and CI workflows.
+
+[Unreleased]: https://github.com/darccau/juicyfruit/compare/v1.2.1...HEAD
+[1.2.1]: https://github.com/darccau/juicyfruit/compare/v1.2.0...v1.2.1
+[1.2.0]: https://github.com/darccau/juicyfruit/compare/v1.1.0...v1.2.0
+[1.1.0]: https://github.com/darccau/juicyfruit/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/darccau/juicyfruit/compare/v0.0.7...v1.0.0
+[0.0.7]: https://github.com/darccau/juicyfruit/compare/v0.0.6...v0.0.7
+[0.0.6]: https://github.com/darccau/juicyfruit/compare/v0.0.5...v0.0.6
+[0.0.5]: https://github.com/darccau/juicyfruit/compare/v0.0.4...v0.0.5
+[0.0.4]: https://github.com/darccau/juicyfruit/compare/v0.0.3...v0.0.4
+[0.0.3]: https://github.com/darccau/juicyfruit/compare/v0.0.2...v0.0.3
+[0.0.2]: https://github.com/darccau/juicyfruit/compare/v0.0.1...v0.0.2
+[0.0.1]: https://github.com/darccau/juicyfruit/releases/tag/v0.0.1

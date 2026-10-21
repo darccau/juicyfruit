@@ -1,0 +1,13 @@
+schema_version: 1
+id: juicyfruit-plugin
+name: Juicyfruit Cordis Plugin
+version: 0.1.2
+description: Juicyfruit integration via Cordis plugin with Kanban, workers, worktrees, and package catalog
+license: MIT
+targets:
+  - dsh
+contents:
+  plugin:
+    - packages/juicyfruit-plugin
+dependencies: []
+conflicts: []

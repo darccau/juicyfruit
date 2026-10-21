@@ -1,0 +1,69 @@
+# Agent adapter contract
+
+Juicyfruit keeps one canonical package representation and maps it into each
+agent's local configuration layout. Adapters own path selection and rendering;
+they never mutate package sources.
+
+The same rule applies to Task Runtime. `.juicyfruit/` owns tasks, sessions, runs,
+checkpoints, dependencies, and context references. Agent directories may contain
+rendered bootstrap files, skills, rules, and agents, but they must not become
+authoritative work stores.
+
+| Target | User root | Project root | Skill rendering |
+| --- | --- | --- | --- |
+| Codex | `.codex/` | `.agents/` | canonical `skills/` tree |
+| Claude Code | `.claude/` | `.claude/` | canonical `skills/` tree |
+| Cursor | `.cursor/` | `.cursor/` | native canonical `skills/` tree |
+| Antigravity/GCA | `.gemini/config/` | `.agents/` | canonical `skills/` tree |
+| Devin | `.devin/` | `.devin/` | canonical `skills/` tree |
+| Gemini CLI | `.gemini/` | `.gemini/` | canonical `skills/` tree |
+| Via | `.via/` | `.via/` | canonical `skills/` tree |
+| Generic | `.juicyfruit/` | `.juicyfruit/` | canonical content tree |
+| DeepSeek Harness | `.dsh/` | `.dsh/` | DSH profile skill/instruction tree and plugin bundle |
+
+## DeepSeek Harness (`dsh`)
+
+The DSH adapter is installed through `juicyfruit setup --dsh` and renders the
+canonical Juicyfruit catalog into the profile's supported skill/instruction
+locations. The `packages/juicyfruit-plugin` bundle requires DSH >= 0.1.5-rc.3 and
+uses only the official bundle, client-module, authenticated fetch, and
+`conversation.view` slot seams. DSH remains an adapter; `.juicyfruit/` remains the
+runtime source of truth.
+
+Installation preserves each canonical content path verbatim under the target
+root, so `skills/<name>/SKILL.md` lands at `<target>/skills/<name>/SKILL.md`,
+`rules/<name>.md` at `<target>/rules/<name>.md`, `agents/<name>.md` at
+`<target>/agents/<name>.md`, and `templates/<name>/TEMPLATE.md` at
+`<target>/templates/<name>/TEMPLATE.md`. For Claude Code that agents path is
+`~/.claude/agents/<name>.md`, the native sub-agent location. See
+[agents.md](agents.md) for the agent catalog contract and
+[templates.md](templates.md) for the template catalog contract.
+
+The implementation accepts injectable user and project roots. Normal execution
+uses the user's home and current working directory; CI and isolated environments
+may set `JUICYFRUIT_USER_ROOT` and `JUICYFRUIT_PROJECT_ROOT`.
+
+These mappings follow the documented extension models for
+[Claude Code skills](https://code.claude.com/docs/en/slash-commands),
+[Cursor skills](https://prod.cursor.com/docs/skills), and
+[Antigravity skills](https://www.antigravity.google/docs/skills?authuser=14).
+Codex mapping follows the local `$CODEX_HOME/skills` contract exposed by Codex.
+Gemini CLI intentionally uses `.gemini/`, while Antigravity/GCA uses
+`.gemini/config/`; setup treats them as distinct targets.
+
+Automatic target selection is conservative. `juicyfruit setup --all` intersects
+package-declared targets with target roots that already exist in the selected
+scope. A missing local target is not created implicitly; explicit target flags
+still express user intent and may create that target root.
+
+## Safety invariants
+
+- Resolve every canonical source path below its validated source root.
+- Stage and digest all files before committing them to the target.
+- Refuse collisions with unmanaged files. A locally modified managed file is
+  resolved per file: `setup` and `package install` ask before overwriting it
+  (or keep it and warn when declined), `--force` overwrites without asking, and
+  a kept file stays tracked so it still reports as modified.
+- Track ownership outside the agent directory in deterministic installed state.
+- Preserve locally modified files during uninstall.
+- Keep per-target, per-scope lockfiles under `.juicyfruit/runtime/locks/`.

@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://juicyfruit.faustobdls.dev/schemas/source.schema.json",
+  "title": "Juicyfruit source manifest",
+  "description": "The canonical read-only manifest inside a materialized Juicyfruit source. Git and archive origins are registry transports, not manifest kinds.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "id",
+    "name",
+    "kind",
+    "path",
+    "read_only",
+    "packages_path"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "id": { "$ref": "#/$defs/id" },
+    "name": { "$ref": "#/$defs/nonEmptyString" },
+    "description": { "$ref": "#/$defs/nonEmptyString" },
+    "kind": { "const": "local" },
+    "path": { "$ref": "#/$defs/safeRelativePath" },
+    "read_only": { "const": true },
+    "packages_path": { "$ref": "#/$defs/safeRelativePath" },
+    "profiles_path": { "$ref": "#/$defs/safeRelativePath" }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$",
+      "maxLength": 64
+    },
+    "nonEmptyString": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "safeRelativePath": {
+      "type": "string",
+      "pattern": "^(?:\\.|(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*//)[A-Za-z0-9][A-Za-z0-9._/-]*)$",
+      "maxLength": 512
+    }
+  }
+}
