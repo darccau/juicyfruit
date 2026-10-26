@@ -1,6 +1,6 @@
 # Juicyfruit
 
-[Português do Brasil](README.pt-BR.md) · [Español](README.es.md)
+It's an adaptation of [https://github.com/faustobdls/alfredo](alfredo) from [fausto](https://github.com/faustobdls)
 
 Juicyfruit is local-first infrastructure for durable, portable AI-assisted engineering.
 
